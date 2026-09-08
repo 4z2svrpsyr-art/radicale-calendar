@@ -1,11 +1,13 @@
 #!/bin/sh
 set -e
 python3 -c "
-from passlib.hash import sha256_crypt
-import os
-h = sha256_crypt.hash(os.environ.get(\"RADICALE_PASS\", \"changeme\"))
+import hashlib, os, base64
+pw = os.environ.get(\"RADICALE_PASS\", \"changeme\")
+user = os.environ.get(\"RADICALE_USER\", \"johnathan\")
+salt = os.urandom(6).hex()
+h = base64.b64encode(hashlib.sha256((pw + salt).encode()).digest()).decode()
 with open(\"/etc/radicale/users\", \"w\") as f:
-    f.write(f\"${os.environ.get(\"RADICALE_USER\", \"johnathan\")}:{h}\n\")
+    f.write(f\"{user}:{h}\\n\")
 print(\">>> User created\")
 "
 echo ">>> Starting Radicale on :5232"
