@@ -5,5 +5,5 @@ COPY config /etc/radicale/config
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 VOLUME ["/var/lib/radicale"]
-EXPOSE 5232
+EXPOSE 80
 ENTRYPOINT ["/entrypoint.sh"]
