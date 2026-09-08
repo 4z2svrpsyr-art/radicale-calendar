@@ -1,3 +1,9 @@
-FROM tomsquest/docker-radicale
-ENV USERS=johnathan:bcf1111$$change_me_please
+FROM python:3.13-alpine
+RUN pip install --no-cache-dir radicale passlib
+RUN mkdir -p /var/lib/radicale/collections /etc/radicale
+COPY config /etc/radicale/config
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+VOLUME ["/var/lib/radicale"]
 EXPOSE 5232
+ENTRYPOINT ["/entrypoint.sh"]
