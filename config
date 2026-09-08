@@ -1,5 +1,5 @@
 [server]
-hosts = 0.0.0.0:5232
+hosts = 0.0.0.0:80
 
 [auth]
 type = htpasswd
