@@ -1,5 +1,5 @@
-FROM python:3.13-alpine
-RUN pip install --no-cache-dir radicale passlib
+FROM python:3.13-slim
+RUN pip install --no-cache-dir radicale
 RUN mkdir -p /var/lib/radicale/collections /etc/radicale
 COPY config /etc/radicale/config
 COPY entrypoint.sh /entrypoint.sh
