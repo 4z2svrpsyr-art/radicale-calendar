@@ -1,0 +1,13 @@
+[server]
+hosts = 0.0.0.0:8080
+
+[auth]
+type = htpasswd
+htpasswd_filename = /etc/radicale/users
+htpasswd_encryption = sha256_crypt
+
+[storage]
+filesystem_folder = /var/lib/radicale/collections
+
+[rights]
+type = owner_only
