@@ -5,54 +5,57 @@ USER = os.environ.get("RADICALE_USER", "johnathan")
 PASS = os.environ.get("RADICALE_PASS", "changeme")
 DATA_DIR = "/data"
 
+EMPTY_CAL = b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Hermes//Personal Calendar//EN\r\nX-WR-CALNAME:Personal\r\nEND:VCALENDAR\r\n"
+
 class CalHandler(http.server.SimpleHTTPRequestHandler):
-    def do_GET(self):
+    def log_message(self, fmt, *args):
+        pass
+
+    def _check_auth(self):
         auth = self.headers.get("Authorization", "")
         if auth.startswith("Basic "):
-            creds = base64.b64decode(auth[6:]).decode().split(":", 1)
-            if creds[0] == USER and creds[1] == PASS:
-                return self.serve_cal()
-        self.send_response(401)
-        self.send_header("WWW-Authenticate", "Basic realm=\"Calendar\"")
-        self.end_headers()
+            try:
+                creds = base64.b64decode(auth[6:]).decode().split(":", 1)
+                return creds[0] == USER and creds[1] == PASS
+            except: pass
+        return False
 
-    def do_PUT(self):
-        auth = self.headers.get("Authorization", "")
-        if not auth.startswith("Basic "):
-            return self.send_auth()
-        creds = base64.b64decode(auth[6:]).decode().split(":", 1)
-        if creds[0] != USER or creds[1] != PASS:
-            return self.send_auth()
-        length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length)
-        os.makedirs(DATA_DIR, exist_ok=True)
-        path = os.path.join(DATA_DIR, self.path.lstrip("/") or "calendar.ics")
-        with open(path, "wb") as f:
-            f.write(body)
-        self.send_response(201)
-        self.end_headers()
-
-    def send_auth(self):
+    def _send_auth(self):
         self.send_response(401)
         self.send_header("WWW-Authenticate", "Basic realm=\"Calendar\"")
         self.end_headers()
         self.wfile.write(b"Auth required")
 
-    def serve_cal(self):
+    def do_GET(self):
+        if not self._check_auth():
+            return self._send_auth()
         path = self.path.lstrip("/") or "personal.ics"
         filepath = os.path.join(DATA_DIR, path)
+        if ".." in path or not os.path.realpath(filepath).startswith(os.path.realpath(DATA_DIR)):
+            self.send_response(403); self.end_headers(); return
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/calendar; charset=utf-8")
+        self.end_headers()
         if os.path.exists(filepath):
-            self.send_response(200)
-            self.send_header("Content-Type", "text/calendar; charset=utf-8")
-            self.send_header("Content-Disposition", f"attachment; filename=\"{path}\"")
-            self.end_headers()
             with open(filepath, "rb") as f:
                 self.wfile.write(f.read())
         else:
-            self.send_response(200)
-            self.send_header("Content-Type", "text/calendar; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(b"BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//Hermes//Personal Calendar//EN\\nEND:VCALENDAR\\n")
+            self.wfile.write(EMPTY_CAL)
+
+    def do_PUT(self):
+        if not self._check_auth():
+            return self._send_auth()
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length)
+        path = self.path.lstrip("/") or "personal.ics"
+        filepath = os.path.join(DATA_DIR, path)
+        if ".." in path or not os.path.realpath(filepath).startswith(os.path.realpath(DATA_DIR)):
+            self.send_response(403); self.end_headers(); return
+        with open(filepath, "wb") as f:
+            f.write(body)
+        self.send_response(201)
+        self.end_headers()
 
 if __name__ == "__main__":
     server = http.server.HTTPServer(("0.0.0.0", PORT), CalHandler)
